@@ -86,4 +86,93 @@ class PhpRendererTest extends PHPUnit_Framework_TestCase
 
         $renderer->render($response, "adfadftestTemplate.php", []);
     }
+
+
+
+    // tests with template paths passed as an array
+
+    public function testRendererWithPathsArray() {
+        $renderer = new \Slim\Views\PhpRenderer([
+            "tests/"
+        ]);
+
+        $headers = new Headers();
+        $body = new Body(fopen('php://temp', 'r+'));
+        $response = new Response(200, $headers, $body);
+
+        $newResponse = $renderer->render($response, "testTemplate.php", array("hello" => "Hi"));
+
+        $newResponse->getBody()->rewind();
+
+        $this->assertEquals("Hi", $newResponse->getBody()->getContents());
+    }
+
+    public function testRenderConstructorWithPathsArray() {
+        $renderer = new \Slim\Views\PhpRenderer([
+            "tests"
+        ]);
+
+        $headers = new Headers();
+        $body = new Body(fopen('php://temp', 'r+'));
+        $response = new Response(200, $headers, $body);
+
+        $newResponse = $renderer->render($response, "testTemplate.php", array("hello" => "Hi"));
+
+        $newResponse->getBody()->rewind();
+
+        $this->assertEquals("Hi", $newResponse->getBody()->getContents());
+    }
+
+    public function testAttributeMergingWithPathsArray() {
+
+        $renderer = new \Slim\Views\PhpRenderer([
+            "tests/"
+        ], [
+            "hello" => "Hello"
+        ]);
+
+        $headers = new Headers();
+        $body = new Body(fopen('php://temp', 'r+'));
+        $response = new Response(200, $headers, $body);
+
+        $newResponse = $renderer->render($response, "testTemplate.php", [
+            "hello" => "Hi"
+        ]);
+        $newResponse->getBody()->rewind();
+        $this->assertEquals("Hi", $newResponse->getBody()->getContents());
+    }
+
+    /**
+     * @expectedException InvalidArgumentException
+     */
+    public function testExceptionForTemplateInDataWithPathsArray() {
+
+        $renderer = new \Slim\Views\PhpRenderer([
+            "tests/"
+        ]);
+
+        $headers = new Headers();
+        $body = new Body(fopen('php://temp', 'r+'));
+        $response = new Response(200, $headers, $body);
+
+        $renderer->render($response, "testTemplate.php", [
+            "template" => "Hi"
+        ]);
+    }
+
+    /**
+     * @expectedException RuntimeException
+     */
+    public function testTemplateNotFoundWithPathsArray() {
+
+        $renderer = new \Slim\Views\PhpRenderer([
+            "tests/"
+        ]);
+
+        $headers = new Headers();
+        $body = new Body(fopen('php://temp', 'r+'));
+        $response = new Response(200, $headers, $body);
+
+        $renderer->render($response, "adfadftestTemplate.php", []);
+    }
 }

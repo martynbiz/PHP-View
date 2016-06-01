@@ -20,9 +20,9 @@ use Psr\Http\Message\ResponseInterface;
 class PhpRenderer
 {
     /**
-     * @var string
+     * @var array
      */
-    protected $templatePath;
+    protected $templatePaths;
 
     /**
      * @var array
@@ -32,16 +32,25 @@ class PhpRenderer
     /**
      * SlimRenderer constructor.
      *
-     * @param string $templatePath
+     * @param string|array $templatePath
      * @param array $attributes
      */
-    public function __construct($templatePath = "", $attributes = [])
+    public function __construct($templatePaths = "", $attributes = [])
     {
-        $chr = substr($templatePath,-1);
-        if ($chr !== '/') {
-            $templatePath .= '/';
+        // $templatePaths will be stored as an array, so convert if string
+        if (! is_array($templatePaths)) {
+            $templatePaths = array($templatePaths);
         }
-        $this->templatePath = $templatePath;
+
+        // ensure that each path is suffixed with slash
+        foreach($templatePaths as $i => $templatePath) {
+            $chr = substr($templatePaths[$i],-1);
+            if ($chr !== '/') {
+                $templatePaths[$i] .= '/';
+            }
+        }
+
+        $this->templatePaths = $templatePaths;
         $this->attributes = $attributes;
     }
 
@@ -66,7 +75,7 @@ class PhpRenderer
         $output = $this->fetch($template, $data);
 
         $response->getBody()->write($output);
-        
+
         return $response;
     }
 
@@ -115,13 +124,23 @@ class PhpRenderer
     }
 
     /**
-     * Get the template path
+     * Get the template path. Old function, use when dealing with a single path
      *
-     * @return string
+     * @return string|array
      */
     public function getTemplatePath()
     {
-        return $this->templatePath;
+        return $this->templatePaths[0];
+    }
+
+    /**
+     * Get the template paths as an array
+     *
+     * @return array
+     */
+    public function getTemplatePaths()
+    {
+        return $this->templatePaths;
     }
 
     /**
@@ -131,7 +150,7 @@ class PhpRenderer
      */
     public function setTemplatePath($templatePath)
     {
-        $this->templatePath = $templatePath;
+        array_push($this->templatePaths, $templatePath);
     }
 
     /**
@@ -154,7 +173,14 @@ class PhpRenderer
             throw new \InvalidArgumentException("Duplicate template key found");
         }
 
-        if (!is_file($this->templatePath . $template)) {
+        // loop through each $templatePaths and look for the template
+        $foundPath = null;
+        foreach ($this->templatePaths as $templatePath) {
+            if (is_file($templatePath . $template)) {
+                $foundPath = $templatePath . $template;
+            }
+        }
+        if (is_null($foundPath)) {
             throw new \RuntimeException("View cannot render `$template` because the template does not exist");
         }
 
@@ -169,7 +195,7 @@ class PhpRenderer
         $data = array_merge($this->attributes, $data);
 
         ob_start();
-        $this->protectedIncludeScope($this->templatePath . $template, $data);
+        $this->protectedIncludeScope($foundPath, $data);
         $output = ob_get_clean();
 
         return $output;
